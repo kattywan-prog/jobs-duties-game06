@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Career Fair Tug-of-War Challenge</title>
+<style>
+  :root{
+    --navy:#16233F;
+    --navy-2:#213259;
+    --cream:#FFF8E9;
+    --sun:#FFC93C;
+    --coral:#FF6B4A;
+    --sky:#4FC1E9;
+    --leaf:#4CAF7D;
+    --lilac:#C9A6F0;
+    --ink:#16233F;
+    --good:#3FAE6A;
+    --bad:#E4574C;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;height:100%;overflow:hidden;overscroll-behavior:none;
+    font-family:-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--navy);color:var(--ink);
+    touch-action:manipulation;
+  }
+  button{font-family:inherit;}
+  #app{position:fixed;inset:0;display:flex;flex-direction:column;height:100dvh;}
+
+  /* ---------- HUD ---------- */
+  #hud{
+    background:linear-gradient(180deg,var(--navy),var(--navy-2));
+    color:#fff;display:flex;align-items:center;gap:10px;
+    padding:8px 14px;flex-wrap:wrap;
+    border-bottom:4px solid var(--sun);
+    z-index:20;
+  }
+  #hud .brand{font-weight:800;font-size:clamp(13px,2vw,20px);letter-spacing:.3px;white-space:nowrap;
+    display:flex;align-items:center;gap:6px;}
+  #hud .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--sun);}
+  #roundInfo{
+    background:rgba(255,255,255,.1);border-radius:999px;padding:6px 16px;
+    font-weight:700;font-size:clamp(12px,1.6vw,16px);white-space:nowrap;
+  }
+  #matchClock{
+    background:rgba(255,201,60,.2);border:2px solid var(--sun);border-radius:999px;padding:5px 15px;
+    font-weight:800;font-size:clamp(12px,1.6vw,16px);white-space:nowrap;color:#fff;
+  }
+  #matchClock.low{background:rgba(228,87,76,.3);border-color:var(--bad);animation:clockPulse 1s ease-in-out infinite;}
+  @keyframes clockPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.08);}}
+  #hudBtns{display:flex;gap:6px;margin-left:auto;}
+
+  /* ---------- Tug-of-war rope bar ---------- */
+  #ropeBar{
+    background:linear-gradient(180deg,var(--navy-2),#2c4066);
+    display:flex;align-items:center;gap:10px;padding:8px 16px;z-index:19;
+    border-bottom:3px solid #0f1a30;
+  }
+  .flagIcon{position:relative;flex:0 0 auto;display:flex;align-items:flex-end;height:52px;}
+  .flagIcon .kidSvg{width:clamp(34px,5.2vw,50px);height:auto;display:block;
+    filter:drop-shadow(0 3px 3px rgba(0,0,0,.35));}
+  .flagIcon.blue .kidSvg{transform:scaleX(-1);}
+  .flagIcon .pullCount{
+    position:absolute;top:-4px;right:-8px;background:#fff;color:var(--navy);
+    font-size:11px;font-weight:800;border-radius:999px;min-width:18px;height:18px;
+    display:flex;align-items:center;justify-content:center;padding:0 4px;
+    box-shadow:0 2px 4px rgba(0,0,0,.3);
+  }
+  .flagIcon.red .pullCount{border:2px solid var(--coral);}
+  .flagIcon.blue .pullCount{border:2px solid var(--sky);}
+  @keyframes tugPull{
+    0%{transform:translateX(0) rotate(0);}
+    30%{transform:translateX(-6px) rotate(-10deg);}
+    60%{transform:translateX(3px) rotate(4deg);}
+    100%{transform:translateX(0) rotate(0);}
+  }
+  .flagIcon.tug{animation:tugPull .5s ease;}
+  #ropeTrack{
+    flex:1;height:14px;border-radius:999px;position:relative;
+    background:repeating-linear-gradient(90deg,#C9A876 0 10px,#B8955F 10px 20px);
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.4);
+  }
+  #ropeTrack::before{
+    content:"";position:absolute;left:50%;top:-5px;bottom:-5px;width:3px;
+    background:rgba(255,255,255,.55);transform:translateX(-50%);
+  }
+  #ropeKnot{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-size:clamp(22px,3.4vw,32px);transition:left .7s cubic-bezier(.3,.9,.4,1.1);
+    filter:drop-shadow(0 3px 3px rgba(0,0,0,.4));
+  }
+  .iconBtn{
+    width:38px;height:38px;border-radius:12px;border:none;background:rgba(255,255,255,.12);
+    color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:background .15s, transform .1s;
+  }
+  .iconBtn:hover{background:rgba(255,255,255,.22);}
+  .iconBtn:active{transform:scale(.9);}
+  .iconBtn.off{opacity:.4;}
+
+  /* ---------- STAGE ---------- */
+  #stage{
+    position:relative;flex:1;overflow:hidden;
+    background:linear-gradient(180deg,#BFE8FA 0%,#EAF7E0 65%,#F5EFC9 100%);
+  }
+  .cloud{
+    position:absolute;background:#fff;border-radius:50px;opacity:.85;
+    box-shadow:20px 4px 0 -4px #fff, -20px 8px 0 -6px #fff;
+    animation:drift linear infinite;
+  }
+  @keyframes drift{from{transform:translateX(0);}to{transform:translateX(-120vw);}}
+  #booths{position:absolute;left:0;right:0;bottom:0;height:16%;display:flex;align-items:flex-end;
+    gap:2.2vw;padding:0 3vw;z-index:1;}
+  .booth{flex:0 0 auto;width:8vw;max-width:80px;min-width:44px;height:70%;border-radius:10px 10px 0 0;
+    position:relative;opacity:.9;}
+  .booth::before{content:"";position:absolute;left:-14%;right:-14%;top:-22%;height:26%;
+    background:inherit;filter:brightness(1.15);border-radius:6px;}
+  #roundBanner{
+    position:absolute;top:14px;left:50%;transform:translateX(-50%) translateY(-140%);
+    background:var(--navy);color:#fff;font-weight:800;padding:10px 26px;border-radius:999px;
+    font-size:clamp(15px,2.4vw,22px);box-shadow:0 8px 20px rgba(0,0,0,.25);z-index:25;
+    transition:transform .35s ease;white-space:nowrap;border:3px solid var(--sun);
+  }
+  #roundBanner.show{transform:translateX(-50%) translateY(0);}
+  #timerBar{position:absolute;top:0;left:0;right:0;height:8px;background:rgba(0,0,0,.12);z-index:22;}
+  #timerFill{height:100%;width:100%;background:linear-gradient(90deg,var(--good),var(--sun),var(--bad));}
+
+  .zone{position:absolute;top:0;bottom:0;overflow:hidden;}
+  .zone.full{left:0;right:0;}
+  .zone.left{left:0;width:50%;border-right:3px dashed rgba(255,255,255,.6);}
+  .zone.right{left:50%;width:50%;}
+  .zoneLabel{
+    position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:8;
+    font-weight:800;padding:6px 16px;border-radius:999px;color:#fff;
+    font-size:clamp(11px,1.9vw,15px);white-space:nowrap;
+  }
+  .zoneLabel.red{background:var(--coral);}
+  .zoneLabel.blue{background:var(--sky);}
+  .targetsLayer{position:absolute;inset:0;z-index:5;}
+
+  .bird{
+    position:absolute;display:flex;flex-direction:column;align-items:center;
+    transform:translateY(-50%);cursor:pointer;user-select:none;touch-action:manipulation;
+    transition:opacity .35s ease;
+  }
+  .bird .wordTag{
+    background:#fff;border:3px solid var(--ink);border-radius:12px;
+    padding:4px 12px;margin-bottom:2px;font-weight:800;color:var(--ink);
+    font-size:clamp(11px,1.9vw,19px);white-space:nowrap;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);
+  }
+  .bird .birdSvg{width:clamp(52px,7vw,78px);height:auto;display:block;
+    filter:drop-shadow(0 5px 4px rgba(0,0,0,.18));}
+  .bird.rtl .birdSvg{transform:scaleX(-1);}
+  .bird .wing{transform-box:fill-box;transform-origin:15% 60%;animation:flap .42s ease-in-out infinite;}
+  @keyframes flap{0%,100%{transform:rotate(0deg);}50%{transform:rotate(-22deg);}}
+  .bird.study{top:50%;animation:studyFloat 2.6s ease-in-out infinite;}
+  @keyframes studyFloat{
+    0%,100%{transform:translate(-50%,-50%) translateY(0);}
+    50%{transform:translate(-50%,-50%) translateY(-12px);}
+  }
+  .bird:active .birdSvg{transform:scale(.92);}
+  .bird.rtl:active .birdSvg{transform:scaleX(-1) scale(.92);}
+  .bird.c1{--birdMain:var(--sun);--birdDark:#D9A428;--birdBelly:#FFF3D0;}
+  .bird.c2{--birdMain:var(--coral);--birdDark:#D1502F;--birdBelly:#FFE1D6;}
+  .bird.c3{--birdMain:var(--sky);--birdDark:#2E93B5;--birdBelly:#E3F6FD;}
+  .bird.c4{--birdMain:var(--leaf);--birdDark:#33874F;--birdBelly:#E4F5E8;}
+  .bird.c5{--birdMain:var(--lilac);--birdDark:#9C74CF;--birdBelly:#F3EBFC;}
+  .bird.fadeOut{opacity:0;}
+
+  /* ---------- Kawaii study mascot ---------- */
+  #studyMascot{
+    position:absolute;right:10px;bottom:10px;width:clamp(78px,13vw,116px);
+    z-index:14;display:none;animation:mascotBob 2.4s ease-in-out infinite;
+    filter:drop-shadow(0 6px 6px rgba(0,0,0,.2));
+  }
+  .study-mode #studyMascot{display:block;}
+  .study-mode #ropeBar,.study-mode #timerBar{display:none;}
+  @keyframes mascotBob{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+  .mascotFace{display:none;}
+  #studyMascot.state-neutral .mascotFace.neutral{display:block;}
+  #studyMascot.state-happy .mascotFace.happy{display:block;}
+  #studyMascot.state-sad .mascotFace.sad{display:block;}
+  #studyMascot.state-happy{animation:mascotHappy .55s ease;}
+  @keyframes mascotHappy{
+    0%{transform:scale(1) translateY(0);}
+    40%{transform:scale(1.18) translateY(-16px);}
+    100%{transform:scale(1) translateY(0);}
+  }
+  #studyMascot.state-sad{animation:mascotSad .5s ease;}
+  @keyframes mascotSad{
+    0%,100%{transform:translateX(0) rotate(0);}
+    30%{transform:translateX(-4px) rotate(-4deg);}
+    60%{transform:translateX(4px) rotate(4deg);}
+  }
+
+  #crosshair{
+    position:fixed;width:46px;height:46px;pointer-events:none;z-index:9998;
+    transform:translate(-50%,-50%) scale(0);opacity:0;
+  }
+  #crosshair.pulse{animation:crosshairPulse .35s ease;}
+  @keyframes crosshairPulse{
+    0%{transform:translate(-50%,-50%) scale(1.6);opacity:1;}
+    60%{transform:translate(-50%,-50%) scale(.85);opacity:1;}
+    100%{transform:translate(-50%,-50%) scale(1.1);opacity:0;}
+  }
+  #crosshair svg{width:100%;height:100%;}
+  .particle{position:fixed;pointer-events:none;z-index:9997;font-size:18px;line-height:1;}
+
+  .feedback{
+    position:absolute;top:44%;left:50%;transform:translate(-50%,-40%) scale(.7);
+    background:#fff;padding:14px 22px;border-radius:18px;text-align:center;
+    font-weight:800;font-size:clamp(13px,2.2vw,22px);box-shadow:0 16px 40px rgba(0,0,0,.3);
+    opacity:0;pointer-events:none;transition:all .25s cubic-bezier(.2,1.4,.4,1);z-index:16;
+    max-width:92%;
+  }
+  .feedback.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  .feedback.good{border:4px solid var(--good);color:var(--good);}
+  .feedback.bad{border:4px solid var(--bad);color:var(--bad);}
+  .feedback span{display:block;color:var(--ink);font-size:.62em;margin-top:6px;font-weight:700;}
+  .feedback .firstTag{display:inline-block;background:var(--sun);color:var(--navy);
+    font-size:.55em;padding:2px 10px;border-radius:999px;margin-top:6px;font-weight:800;}
+
+  /* ---------- Prompt bar ---------- */
+  #promptBar{
+    background:var(--cream);border-top:4px solid var(--sun);
+    display:flex;align-items:center;gap:14px;padding:12px 16px;
+    min-height:64px;z-index:20;
+  }
+  #speakBtn{
+    flex:0 0 auto;width:48px;height:48px;border-radius:50%;border:none;
+    background:var(--navy);color:#fff;font-size:20px;cursor:pointer;
+  }
+  #speakBtn:active{transform:scale(.92);}
+  #promptText{flex:1;font-size:clamp(14px,2.3vw,22px);font-weight:700;line-height:1.3;}
+  #promptText b{color:var(--coral);}
+  #nextBtn{
+    flex:0 0 auto;background:var(--sun);border:none;color:var(--navy);font-weight:800;
+    padding:12px 20px;border-radius:14px;font-size:clamp(13px,1.8vw,16px);cursor:pointer;
+    box-shadow:0 4px 0 #d9a825;
+  }
+  #nextBtn:active{transform:translateY(3px);box-shadow:none;}
+
+  /* ---------- Overlays ---------- */
+  .overlay{
+    position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 30% 20%,#2a3d68,var(--navy) 70%);
+    padding:20px;overflow:auto;
+  }
+  .panel{
+    background:var(--cream);border-radius:24px;padding:clamp(20px,4vw,40px);
+    max-width:640px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);
+  }
+  .panel h1{font-size:clamp(20px,4.3vw,32px);margin:0 0 4px;color:var(--navy);font-weight:800;}
+  .panel .sub{color:#5a6480;font-size:clamp(13px,2vw,16px);margin-bottom:22px;}
+  .sectionLabel{text-align:left;font-weight:800;color:var(--navy);margin:18px 0 8px;font-size:14px;}
+  .choiceRow{display:flex;gap:10px;flex-wrap:wrap;}
+  .choiceCard{
+    flex:1 1 140px;background:#fff;border:3px solid #e4dfca;border-radius:16px;
+    padding:14px 10px;cursor:pointer;transition:all .15s;text-align:center;
+  }
+  .choiceCard .emoji{font-size:26px;}
+  .choiceCard .name{font-weight:800;color:var(--navy);margin-top:4px;font-size:15px;}
+  .choiceCard .desc{font-size:11.5px;color:#78829c;margin-top:2px;}
+  .choiceCard.selected{border-color:var(--coral);background:#FFF1EC;transform:translateY(-3px);}
+  #startBtn{
+    margin-top:26px;width:100%;padding:16px;border:none;border-radius:16px;
+    background:var(--coral);color:#fff;font-weight:800;font-size:clamp(16px,2.6vw,20px);
+    cursor:pointer;box-shadow:0 6px 0 #c8492f;
+  }
+  #startBtn:active{transform:translateY(4px);box-shadow:none;}
+  #endScreen h2{font-size:clamp(22px,4.8vw,34px);color:var(--navy);margin:0 0 10px;}
+  #endResultBoard{display:flex;gap:14px;justify-content:center;margin:20px 0;flex-wrap:wrap;}
+  .resultCard{background:#fff;border-radius:16px;padding:16px 22px;min-width:140px;border:3px solid #e4dfca;}
+  .resultCard.winner{border-color:var(--sun);background:#FFFBEA;}
+  .resultCard .rName{font-weight:800;color:var(--navy);}
+  .resultCard .rScore{font-size:30px;font-weight:800;color:var(--coral);}
+  #endBtns{display:flex;gap:10px;margin-top:20px;}
+  #endBtns button{flex:1;padding:14px;border:none;border-radius:14px;font-weight:800;cursor:pointer;font-size:15px;}
+  #playAgainBtn{background:var(--coral);color:#fff;box-shadow:0 5px 0 #c8492f;}
+  #backHomeBtn{background:#e4dfca;color:var(--navy);box-shadow:0 5px 0 #c3bda2;}
+  #playAgainBtn:active,#backHomeBtn:active{transform:translateY(4px);box-shadow:none;}
+  .confetti{position:fixed;top:-20px;width:10px;height:16px;z-index:5;border-radius:2px;}
+  [hidden]{display:none !important;}
+  @media (max-width:520px){
+    #hud{padding:8px;} #roundInfo{order:3;width:100%;text-align:center;}
+    #promptBar{flex-wrap:wrap;} #promptText{order:2;width:100%;text-align:center;}
+    #nextBtn{order:3;width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div id="app" hidden>
+  <header id="hud">
+    <div class="brand"><span class="dot"></span>Career Fair · Tug-of-War Challenge</div>
+    <div id="roundInfo">Round 1 / 9</div>
+    <div id="matchClock" hidden>⏱ 3:00</div>
+    <div id="hudBtns">
+      <button class="iconBtn" id="sfxBtn" title="Toggle sound effects">🔊</button>
+      <button class="iconBtn" id="speechBtn" title="Toggle English read-aloud">🗣️</button>
+      <button class="iconBtn" id="restartBtn" title="Restart game">🔁</button>
+    </div>
+  </header>
+
+  <div id="ropeBar">
+    <div class="flagIcon red"><svg class="kidSvg" viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="18" y="70" width="14" height="26" rx="7" fill="#FF6B4A" transform="rotate(-16 25 70)"/>
+      <rect x="34" y="72" width="14" height="24" rx="7" fill="#FF6B4A" transform="rotate(12 41 72)"/>
+      <ellipse cx="19" cy="97" rx="9" ry="5" fill="#3B2A1A"/>
+      <ellipse cx="47" cy="97" rx="9" ry="5" fill="#3B2A1A"/>
+      <path d="M22,42 Q28,18 55,26 Q70,33 62,58 Q49,75 29,68 Q15,57 22,42 Z" fill="#FF6B4A"/>
+      <path d="M55,45 Q75,42 88,48" stroke="#F4C08C" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <circle cx="88" cy="48" r="6.5" fill="#F4C08C"/>
+      <circle cx="55" cy="18" r="16" fill="#F4C08C"/>
+      <path d="M39,12 Q55,-5 71,12 Q68,3 55,3 Q42,3 39,12 Z" fill="#5B3A29"/>
+      <circle cx="50" cy="17" r="2" fill="#16233F"/>
+      <circle cx="59" cy="17" r="2" fill="#16233F"/>
+      <path d="M50,23 Q55,27 60,23" stroke="#16233F" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="46" cy="21" r="3" fill="#FF9E9E" opacity=".55"/>
+      <circle cx="63" cy="21" r="3" fill="#FF9E9E" opacity=".55"/>
+    </svg><span class="pullCount" id="pullCount0">0</span></div>
+    <div id="ropeTrack"><div id="ropeKnot">🪢</div></div>
+    <div class="flagIcon blue"><svg class="kidSvg" viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
+      <rect x="18" y="70" width="14" height="26" rx="7" fill="#4FC1E9" transform="rotate(-16 25 70)"/>
+      <rect x="34" y="72" width="14" height="24" rx="7" fill="#4FC1E9" transform="rotate(12 41 72)"/>
+      <ellipse cx="19" cy="97" rx="9" ry="5" fill="#3B2A1A"/>
+      <ellipse cx="47" cy="97" rx="9" ry="5" fill="#3B2A1A"/>
+      <path d="M22,42 Q28,18 55,26 Q70,33 62,58 Q49,75 29,68 Q15,57 22,42 Z" fill="#4FC1E9"/>
+      <path d="M55,45 Q75,42 88,48" stroke="#F4C08C" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <circle cx="88" cy="48" r="6.5" fill="#F4C08C"/>
+      <circle cx="55" cy="18" r="16" fill="#F4C08C"/>
+      <path d="M39,12 Q55,-5 71,12 Q68,3 55,3 Q42,3 39,12 Z" fill="#5B3A29"/>
+      <circle cx="50" cy="17" r="2" fill="#16233F"/>
+      <circle cx="59" cy="17" r="2" fill="#16233F"/>
+      <path d="M50,23 Q55,27 60,23" stroke="#16233F" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <circle cx="46" cy="21" r="3" fill="#FF9E9E" opacity=".55"/>
+      <circle cx="63" cy="21" r="3" fill="#FF9E9E" opacity=".55"/>
+    </svg><span class="pullCount" id="pullCount1">0</span></div>
+  </div>
+
+  <main id="stage">
+    <div id="roundBanner"></div>
+    <div id="timerBar"><div id="timerFill"></div></div>
+    <div id="booths"></div>
+    <div id="zonesHost"></div>
+    <div id="studyMascot" class="state-neutral">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="28" cy="34" r="15" fill="#FFF3E6" stroke="#F4C08C" stroke-width="3"/>
+        <circle cx="92" cy="34" r="15" fill="#FFF3E6" stroke="#F4C08C" stroke-width="3"/>
+        <circle cx="28" cy="35" r="6" fill="#FFD6E8"/>
+        <circle cx="92" cy="35" r="6" fill="#FFD6E8"/>
+        <ellipse cx="60" cy="72" rx="47" ry="41" fill="#FFF3E6" stroke="#F4C08C" stroke-width="3"/>
+        <circle cx="34" cy="80" r="7" fill="#FFB6C1" opacity=".6"/>
+        <circle cx="86" cy="80" r="7" fill="#FFB6C1" opacity=".6"/>
+        <g class="mascotFace neutral">
+          <circle cx="46" cy="70" r="5" fill="#4A3A2A"/>
+          <circle cx="74" cy="70" r="5" fill="#4A3A2A"/>
+          <path d="M50,86 Q60,92 70,86" stroke="#4A3A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </g>
+        <g class="mascotFace happy">
+          <path d="M40,68 Q46,61 52,68" stroke="#4A3A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M68,68 Q74,61 80,68" stroke="#4A3A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M46,84 Q60,99 74,84" stroke="#4A3A2A" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+          <path d="M14,50 L20,44 M17,55 L26,51" stroke="#FFD34D" stroke-width="2" stroke-linecap="round"/>
+          <path d="M100,50 L106,44 M103,55 L112,51" stroke="#FFD34D" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g class="mascotFace sad">
+          <circle cx="46" cy="72" r="5" fill="#4A3A2A"/>
+          <circle cx="74" cy="72" r="5" fill="#4A3A2A"/>
+          <path d="M50,92 Q60,86 70,92" stroke="#4A3A2A" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M44,77 Q41,84 45,89" stroke="#8FCBEE" stroke-width="3" fill="none" stroke-linecap="round"/>
+        </g>
+        <rect x="42" y="16" width="36" height="7" rx="2" fill="#7C6FBF"/>
+        <polygon points="60,5 92,18 60,28 28,18" fill="#9A8DE0"/>
+        <line x1="92" y1="18" x2="92" y2="32" stroke="#7C6FBF" stroke-width="2"/>
+        <circle cx="92" cy="34" r="3.5" fill="#FFD34D"/>
+      </svg>
+    </div>
+  </main>
+
+  <footer id="promptBar">
+    <button id="speakBtn" title="Read again">🔊</button>
+    <div id="promptText">Get ready…</div>
+    <button id="nextBtn" hidden>Next Round ▶</button>
+  </footer>
+</div>
+
+<div id="crosshair">
+  <svg viewBox="0 0 46 46"><circle cx="23" cy="23" r="18" fill="none" stroke="#FFC93C" stroke-width="4"/>
+  <line x1="23" y1="0" x2="23" y2="12" stroke="#FF6B4A" stroke-width="4"/>
+  <line x1="23" y1="34" x2="23" y2="46" stroke="#FF6B4A" stroke-width="4"/>
+  <line x1="0" y1="23" x2="12" y2="23" stroke="#FF6B4A" stroke-width="4"/>
+  <line x1="34" y1="23" x2="46" y2="23" stroke="#FF6B4A" stroke-width="4"/></svg>
+</div>
+
+<!-- START SCREEN -->
+<div class="overlay" id="startScreen">
+  <div class="panel">
+    <h1>🪢 Career Fair Tug-of-War Challenge</h1>
+    <div class="sub">Read the English clue and shoot the correct bird first — whoever answers fastest pulls the rope their way!</div>
+
+    <div class="sectionLabel">Choose a difficulty</div>
+    <div class="choiceRow" id="diffRow">
+      <div class="choiceCard" data-diff="easy">
+        <div class="emoji">🟢</div><div class="name">Easy</div>
+        <div class="desc">3 targets · slow speed · 9 rounds</div>
+      </div>
+      <div class="choiceCard" data-diff="medium">
+        <div class="emoji">🟡</div><div class="name">Medium</div>
+        <div class="desc">4 targets · medium speed · 12 rounds</div>
+      </div>
+      <div class="choiceCard" data-diff="hard">
+        <div class="emoji">🔴</div><div class="name">Hard</div>
+        <div class="desc">5 targets · fast speed · 15 rounds</div>
+      </div>
+    </div>
+
+    <div class="sectionLabel">Game mode</div>
+    <div class="choiceRow" id="teamRow">
+      <div class="choiceCard" data-team="1">
+        <div class="emoji">🤖</div><div class="name">You vs Robo</div>
+        <div class="desc">Tug-of-war against a computer opponent</div>
+      </div>
+      <div class="choiceCard" data-team="2">
+        <div class="emoji">🤝</div><div class="name">Team Battle</div>
+        <div class="desc">Team Red vs Team Blue — shoot at the same time and pull the rope your way!</div>
+      </div>
+      <div class="choiceCard" data-team="3">
+        <div class="emoji">🌸</div><div class="name">Self-Study</div>
+        <div class="desc">Practice alone at your own pace with a kawaii study buddy — no timer, no pressure!</div>
+      </div>
+    </div>
+
+    <div id="matchTimeSection" hidden>
+      <div class="sectionLabel">Match Length (Team Battle)</div>
+      <div class="choiceRow" id="matchTimeRow">
+        <div class="choiceCard" data-minutes="2">
+          <div class="emoji">⏱️</div><div class="name">2 min</div>
+          <div class="desc">Quick match</div>
+        </div>
+        <div class="choiceCard" data-minutes="3">
+          <div class="emoji">⏱️</div><div class="name">3 min</div>
+          <div class="desc">Standard match</div>
+        </div>
+        <div class="choiceCard" data-minutes="4">
+          <div class="emoji">⏱️</div><div class="name">4 min</div>
+          <div class="desc">Long match</div>
+        </div>
+      </div>
+    </div>
+
+    <button id="startBtn">Start Game 🚀</button>
+  </div>
+</div>
+
+<!-- END SCREEN -->
+<div class="overlay" id="endScreen" hidden>
+  <div class="panel">
+    <h2 id="endTitle">Game Over!</h2>
+    <div id="endResultBoard"></div>
+    <div id="endBtns">
+      <button id="playAgainBtn">🔁 Play Again</button>
+      <button id="backHomeBtn">⚙️ Change Settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------------- Data ---------------- */
+  var VOCAB = [
+    {word:"caring", def:"care for and support others"},
+    {word:"outgoing", def:"enjoy meeting new people"},
+    {word:"good-looking", def:"attractive"},
+    {word:"talkative", def:"enjoy talking to people"},
+    {word:"patient", def:"not get angry easily"},
+    {word:"hard-working", def:"work long hours"},
+    {word:"creative", def:"come up with new ideas"},
+    {word:"attentive", def:"pay attention to others' needs"},
+    {word:"calm", def:"stay relaxed in stressful situations"}
+  ];
+
+  var DIFFS = {
+    easy:   {choices:3, speedMin:6.5, speedMax:8.5, rounds:9,  timeLimit:10, ropeWin:4},
+    medium: {choices:4, speedMin:4.8, speedMax:6.2, rounds:12, timeLimit:7,  ropeWin:5},
+    hard:   {choices:5, speedMin:3.4, speedMax:4.6, rounds:15, timeLimit:5,  ropeWin:6}
+  };
+  var BOT_ACCURACY = {easy:0.42, medium:0.62, hard:0.8};
+  var BOT_DELAY_RANGE = {easy:[3,5.5], medium:[2,3.8], hard:[1,2.3]};
+
+  var BOOTH_COLORS = ["#FF6B4A","#4FC1E9","#FFC93C","#4CAF7D","#C9A6F0","#FF8A65"];
+
+  /* ---------------- State ---------------- */
+  var game = {
+    diffKey:"easy", teamMode:1, diff:null,
+    round:1, totalRounds:9, roundQueue:[], currentRoundData:null,
+    teams:[], teamState:[], firstCorrectTeam:null,
+    ropePosition:0, ropeWin:4, pullsWon:[0,0], decisiveWinner:null,
+    timerHandle:null, autoNextTimeout:null, botTimeout:null,
+    matchMinutes:3, matchEndAt:null, matchTicker:null,
+    studyMissed:{}, studyRoundDone:false,
+    sfxOn:true, speechOn:true, actx:null
+  };
+
+  try{
+    var savedSfx = localStorage.getItem('cf_sfx');
+    var savedSpeech = localStorage.getItem('cf_speech');
+    if(savedSfx!==null) game.sfxOn = savedSfx==='1';
+    if(savedSpeech!==null) game.speechOn = savedSpeech==='1';
+  }catch(e){}
+
+  /* ---------------- Helpers ---------------- */
+  function $(id){return document.getElementById(id);}
+  function shuffle(arr){
+    var a = arr.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+  function randRange(min,max){ return min + Math.random()*(max-min); }
+
+  /* ---------------- Sound ---------------- */
+  function ensureAudio(){
+    if(!game.actx){
+      try{ game.actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+    }
+    if(game.actx && game.actx.state==='suspended'){ game.actx.resume(); }
+  }
+  function tone(freq, dur, wave, start, vol){
+    if(!game.actx) return;
+    var o = game.actx.createOscillator();
+    var g = game.actx.createGain();
+    o.type = wave || 'sine';
+    o.frequency.setValueAtTime(freq, start);
+    g.gain.setValueAtTime(vol||0.18, start);
+    g.gain.exponentialRampToValueAtTime(0.001, start+dur);
+    o.connect(g); g.connect(game.actx.destination);
+    o.start(start); o.stop(start+dur);
+  }
+  function playSound(type){
+    if(!game.sfxOn) return;
+    ensureAudio();
+    if(!game.actx) return;
+    var t0 = game.actx.currentTime;
+    if(type==='shoot'){
+      tone(720,0.07,'square',t0,0.12);
+      tone(420,0.09,'square',t0+0.03,0.08);
+    } else if(type==='correct'){
+      tone(523,0.12,'sine',t0,0.2);
+      tone(659,0.12,'sine',t0+0.1,0.2);
+      tone(880,0.22,'sine',t0+0.2,0.22);
+    } else if(type==='wrong'){
+      tone(300,0.18,'sawtooth',t0,0.18);
+      tone(180,0.24,'sawtooth',t0+0.14,0.18);
+    } else if(type==='timeout'){
+      tone(400,0.12,'triangle',t0,0.15);
+      tone(300,0.16,'triangle',t0+0.12,0.15);
+    } else if(type==='win'){
+      [523,659,784,1046].forEach(function(f,i){ tone(f,0.2,'sine',t0+i*0.14,0.2); });
+    }
+  }
+
+  /* ---------------- Speech ---------------- */
+  function speak(text){
+    if(!game.speechOn) return;
+    if(!('speechSynthesis' in window)) return;
+    try{
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.88;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
+  /* ---------------- Scenery ---------------- */
+  function buildScenery(){
+    var stage = $('stage');
+    Array.prototype.forEach.call(stage.querySelectorAll('.cloud'), function(c){c.remove();});
+    for(var i=0;i<4;i++){
+      var c = document.createElement('div');
+      c.className='cloud';
+      var w = 60+Math.random()*60;
+      c.style.width=w+'px'; c.style.height=(w*0.5)+'px';
+      c.style.top=(6+Math.random()*22)+'%';
+      c.style.left=(100+Math.random()*40)+'%';
+      c.style.animationDuration=(28+Math.random()*20)+'s';
+      c.style.animationDelay=(-Math.random()*30)+'s';
+      stage.insertBefore(c, stage.firstChild);
+    }
+    var booths = $('booths');
+    booths.innerHTML='';
+    for(var b=0;b<7;b++){
+      var d = document.createElement('div');
+      d.className='booth';
+      d.style.background = BOOTH_COLORS[b % BOOTH_COLORS.length];
+      d.style.height = (55+Math.random()*30)+'%';
+      booths.appendChild(d);
+    }
+  }
+
+  /* ---------------- Round queue ---------------- */
+  function buildRoundQueue(total){
+    var queue = [];
+    var pool = shuffle(VOCAB);
+    var pi = 0;
+    while(queue.length < total){
+      if(pi >= pool.length){ pool = shuffle(VOCAB); pi = 0; }
+      var candidate = pool[pi++];
+      if(queue.length>0 && queue[queue.length-1].word === candidate.word && pi < pool.length){
+        var tmp = pool[pi]; pool[pi]=candidate; candidate = tmp; pi++;
+      }
+      queue.push(candidate);
+    }
+    return queue;
+  }
+  function getDistractors(target, count){
+    var others = VOCAB.filter(function(v){ return v.word !== target.word; });
+    return shuffle(others).slice(0, count);
+  }
+
+  /* ---------------- HUD / rope ---------------- */
+  function updateHUD(){
+    $('roundInfo').textContent = 'Round '+Math.min(game.round,game.totalRounds)+' / '+game.totalRounds;
+  }
+  function buildRopeUI(){
+    $('pullCount0').textContent = game.pullsWon[0];
+    $('pullCount1').textContent = game.pullsWon[1];
+    updateRopeKnot();
+  }
+  function updateRopeKnot(){
+    var pct = ((game.ropePosition + game.ropeWin) / (game.ropeWin*2)) * 100;
+    pct = Math.max(3, Math.min(97, pct));
+    $('ropeKnot').style.left = pct+'%';
+    $('pullCount0').textContent = game.pullsWon[0];
+    $('pullCount1').textContent = game.pullsWon[1];
+  }
+
+  /* ---------------- Match clock (Team Battle only) ---------------- */
+  function startMatchClock(){
+    game.matchEndAt = Date.now() + game.matchMinutes*60*1000;
+    var clock = $('matchClock');
+    clock.hidden = false;
+    clock.classList.remove('low');
+    renderMatchClock(game.matchMinutes*60*1000);
+    clearInterval(game.matchTicker);
+    game.matchTicker = setInterval(function(){
+      var remaining = game.matchEndAt - Date.now();
+      if(remaining <= 0){
+        renderMatchClock(0);
+        clearInterval(game.matchTicker);
+        forceEndMatch();
+        return;
+      }
+      renderMatchClock(remaining);
+    }, 200);
+  }
+  function renderMatchClock(ms){
+    var totalSec = Math.max(0, Math.ceil(ms/1000));
+    var m = Math.floor(totalSec/60), s = totalSec%60;
+    var clock = $('matchClock');
+    clock.textContent = '⏱ ' + m + ':' + (s<10 ? '0'+s : s);
+    clock.classList.toggle('low', totalSec <= 20);
+  }
+  function stopMatchClock(){
+    clearInterval(game.matchTicker);
+    game.matchTicker = null;
+    $('matchClock').hidden = true;
+  }
+  function forceEndMatch(){
+    clearTimeout(game.timerHandle);
+    clearTimeout(game.botTimeout);
+    clearTimeout(game.autoNextTimeout);
+    hideAllFeedback();
+    game.teams.forEach(function(team, idx){
+      if(team.visual) fadeOutTeamBadges(idx);
+    });
+    endGame();
+  }
+
+  /* ---------------- Zones (visual play areas for human teams) ---------------- */
+  function buildZones(){
+    var host = $('zonesHost');
+    host.innerHTML = '';
+    game.zoneEls = [];
+    var visualTeams = game.teams.filter(function(t){ return t.visual; });
+    var singleVisual = visualTeams.length <= 1;
+    game.teams.forEach(function(team, idx){
+      if(!team.visual){ game.zoneEls.push(null); return; }
+      var zone = document.createElement('div');
+      zone.className = 'zone ' + (singleVisual ? 'full' : (idx===0 ? 'left' : 'right'));
+      if(!singleVisual){
+        var label = document.createElement('div');
+        label.className = 'zoneLabel ' + (idx===0 ? 'red' : 'blue');
+        label.textContent = team.name;
+        zone.appendChild(label);
+      }
+      var layer = document.createElement('div');
+      layer.className = 'targetsLayer';
+      zone.appendChild(layer);
+      var fb = document.createElement('div');
+      fb.className = 'feedback';
+      zone.appendChild(fb);
+      host.appendChild(zone);
+      game.zoneEls.push({zone:zone, layer:layer, feedback:fb});
+    });
+  }
+
+  /* ---------------- Cute bird graphic ---------------- */
+  var BIRD_SVG =
+    '<svg class="birdSvg" viewBox="0 0 100 70" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M8,35 L29,23 L29,47 Z" style="fill:var(--birdDark)"/>' +
+      '<path class="wing" d="M40,40 Q56,14 72,34 Q56,46 40,40 Z" style="fill:var(--birdDark)"/>' +
+      '<ellipse cx="48" cy="40" rx="30" ry="23" style="fill:var(--birdMain)"/>' +
+      '<ellipse cx="46" cy="48" rx="15" ry="11" style="fill:var(--birdBelly)"/>' +
+      '<path d="M67,11 L71,1 L74,12" stroke="var(--birdDark)" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+      '<circle cx="74" cy="24" r="17" style="fill:var(--birdMain)"/>' +
+      '<polygon points="89,21 101,25 89,31" fill="#FFB74D"/>' +
+      '<circle cx="79" cy="19" r="5.5" fill="#fff"/>' +
+      '<circle cx="81" cy="19" r="2.8" style="fill:var(--ink)"/>' +
+      '<circle cx="66" cy="28" r="4.5" fill="#fff" opacity=".35"/>' +
+    '</svg>';
+
+  /* ---------------- Targets ---------------- */
+  function clearZoneTargets(idx){
+    game.zoneEls[idx].layer.innerHTML = '';
+    game.teamState[idx].badges = [];
+  }
+  function spawnTargetsForTeam(idx, options){
+    clearZoneTargets(idx);
+    var layer = game.zoneEls[idx].layer;
+    var n = options.length;
+    options.forEach(function(opt, i){
+      var bird = document.createElement('div');
+      var ltr = i%2===0;
+      bird.className = 'bird c'+((i%5)+1) + (ltr ? '' : ' rtl');
+      bird.innerHTML = '<div class="wordTag">'+opt.word+'</div>' + BIRD_SVG;
+      var topPct = ((i+1)/(n+1))*100;
+      bird.style.top = topPct+'%';
+      var startLeft = ltr ? '-160px' : 'calc(100% + 160px)';
+      var endLeft = ltr ? 'calc(100% + 160px)' : '-160px';
+      bird.style.left = startLeft;
+      layer.appendChild(bird);
+      var duration = randRange(game.diff.speedMin, game.diff.speedMax) * 1000;
+      var anim = bird.animate(
+        [{left:startLeft},{left:endLeft}],
+        {duration:duration, easing:'linear', fill:'forwards'}
+      );
+      anim.onfinish = function(){
+        if(bird.isConnected) bird.remove();
+      };
+      bird.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        if(game.teamState[idx].answered) return;
+        handleShoot(idx, opt.correct, opt.word, e.clientX, e.clientY);
+      });
+      game.teamState[idx].badges.push({el:bird, anim:anim});
+    });
+  }
+  function fadeOutTeamBadges(idx){
+    game.teamState[idx].badges.forEach(function(b){
+      try{ b.anim.pause(); }catch(e){}
+      b.el.classList.add('fadeOut');
+      setTimeout(function(el){ if(el.isConnected) el.remove(); }, 420, b.el);
+    });
+    game.teamState[idx].badges = [];
+  }
+
+  /* ---------------- Study-mode birds (stationary, no timer pressure) ---------------- */
+  function spawnStudyBirds(idx, options){
+    clearZoneTargets(idx);
+    var layer = game.zoneEls[idx].layer;
+    var n = options.length;
+    options.forEach(function(opt, i){
+      var bird = document.createElement('div');
+      bird.className = 'bird study c'+((i%5)+1);
+      bird.innerHTML = '<div class="wordTag">'+opt.word+'</div>' + BIRD_SVG;
+      var leftPct = ((i+1)/(n+1))*100;
+      bird.style.left = leftPct+'%';
+      bird.style.animationDelay = (i*0.18)+'s';
+      layer.appendChild(bird);
+      bird.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        studyHandleShoot(bird, opt.correct, opt.word, e.clientX, e.clientY);
+      });
+      game.teamState[idx].badges.push({el:bird, anim:null});
+    });
+  }
+
+  /* ---------------- Kawaii mascot ---------------- */
+  function setMascotState(state){
+    var m = $('studyMascot');
+    if(!m) return;
+    m.classList.remove('state-neutral','state-happy','state-sad');
+    void m.offsetWidth;
+    m.classList.add('state-'+state);
+  }
+
+  /* ---------------- Shooting effects ---------------- */
+  function shootEffect(x, y, good){
+    var ch = $('crosshair');
+    ch.style.left = x+'px'; ch.style.top = y+'px';
+    ch.classList.remove('pulse'); void ch.offsetWidth; ch.classList.add('pulse');
+    var glyphs = good ? ['🪶','✨','🪶','⭐'] : ['🪶','💫','🪶'];
+    for(var k=0;k<10;k++){
+      (function(){
+        var p = document.createElement('div');
+        p.className='particle';
+        p.style.left = x+'px'; p.style.top = y+'px';
+        p.textContent = glyphs[k % glyphs.length];
+        document.body.appendChild(p);
+        var angle = Math.random()*Math.PI*2;
+        var dist = 40+Math.random()*70;
+        var a = p.animate([
+          {transform:'translate(0,0) scale(1)', opacity:1},
+          {transform:'translate('+(Math.cos(angle)*dist)+'px,'+(Math.sin(angle)*dist)+'px) scale(0)', opacity:0}
+        ], {duration:550+Math.random()*200, easing:'ease-out'});
+        a.onfinish = function(){ if(p.isConnected) p.remove(); };
+      })();
+    }
+  }
+
+  /* ---------------- Round flow ---------------- */
+  function showRoundBanner(text, cb){
+    var banner = $('roundBanner');
+    banner.textContent = text;
+    banner.classList.add('show');
+    setTimeout(function(){
+      banner.classList.remove('show');
+      setTimeout(cb, 350);
+    }, 850);
+  }
+
+  function nextRound(){
+    hideAllFeedback();
+    updateHUD();
+    clearTimeout(game.botTimeout);
+    var wordData = game.roundQueue[game.round-1];
+    var distractors = getDistractors(wordData, game.diff.choices - 1);
+    var baseSet = [{word:wordData.word, correct:true}].concat(
+      distractors.map(function(d){ return {word:d.word, correct:false}; })
+    );
+    game.currentRoundData = {target:wordData};
+    game.firstCorrectTeam = null;
+    game.teamState = game.teams.map(function(){ return {answered:false, result:null, badges:[]}; });
+    $('promptText').innerHTML = wordData.def;
+    $('nextBtn').hidden = true;
+
+    showRoundBanner('Round '+game.round+' — Get Ready!', function(){
+      speak(wordData.def);
+      game.teams.forEach(function(team, idx){
+        if(team.visual){
+          spawnTargetsForTeam(idx, shuffle(baseSet));
+        } else {
+          scheduleBotAnswer(idx);
+        }
+      });
+      startTimer();
+    });
+  }
+
+  function scheduleBotAnswer(idx){
+    var acc = BOT_ACCURACY[game.diffKey];
+    var range = BOT_DELAY_RANGE[game.diffKey];
+    var delay = randRange(range[0], range[1]) * 1000;
+    var isCorrect = Math.random() < acc;
+    game.botTimeout = setTimeout(function(){
+      var ts = game.teamState[idx];
+      if(!ts || ts.answered) return;
+      ts.answered = true;
+      ts.result = isCorrect ? 'correct' : 'wrong';
+      if(isCorrect && game.firstCorrectTeam===null){ game.firstCorrectTeam = idx; }
+      playSound(isCorrect ? 'correct' : 'wrong');
+      checkRoundComplete();
+    }, delay);
+  }
+
+  function startTimer(){
+    var fill = $('timerFill');
+    fill.style.transition = 'none';
+    fill.style.width = '100%';
+    void fill.offsetWidth;
+    var timeLimit = game.diff.timeLimit;
+    fill.style.transition = 'width '+timeLimit+'s linear';
+    fill.style.width = '0%';
+    game.timerHandle = setTimeout(function(){
+      clearTimeout(game.botTimeout);
+      game.teamState.forEach(function(ts, idx){
+        if(!ts.answered){
+          ts.answered = true;
+          ts.result = 'timeout';
+          if(game.teams[idx].visual){
+            playSound('timeout');
+            fadeOutTeamBadges(idx);
+            showZoneFeedback(idx, 'timeout');
+          }
+        }
+      });
+      checkRoundComplete();
+    }, timeLimit*1000);
+  }
+
+  function handleShoot(idx, correct, word, x, y){
+    var ts = game.teamState[idx];
+    if(ts.answered) return;
+    ts.answered = true;
+    playSound('shoot');
+    shootEffect(x, y, correct);
+    setTimeout(function(){
+      var wasFirst = false;
+      if(correct && game.firstCorrectTeam===null){
+        game.firstCorrectTeam = idx;
+        wasFirst = true;
+      }
+      ts.result = correct ? 'correct' : 'wrong';
+      playSound(correct ? 'correct' : 'wrong');
+      fadeOutTeamBadges(idx);
+      showZoneFeedback(idx, ts.result, wasFirst);
+      checkRoundComplete();
+    }, 140);
+  }
+
+  function showZoneFeedback(idx, result, wasFirst){
+    if(!game.zoneEls[idx]) return;
+    var fb = game.zoneEls[idx].feedback;
+    var target = game.currentRoundData.target;
+    fb.className = 'feedback show ' + (result==='correct' ? 'good' : (result==='wrong' ? 'bad' : ''));
+    var isStudy = game.teamMode===3;
+    var head = result==='correct' ? '✔️ Correct!' : (result==='wrong' ? (isStudy ? '🌱 Not quite — try again!' : '✖️ Wrong!') : "⏰ Time's up!");
+    var html = head;
+    if(!isStudy || result==='correct'){
+      html += '<span>Answer: <b>'+target.word+'</b> — '+target.def+'</span>';
+    }
+    if(result==='correct' && !isStudy){
+      html += wasFirst
+        ? '<span class="firstTag">🪢 You pull the rope!</span>'
+        : '<span class="firstTag">Too slow — the other side pulled first!</span>';
+    }
+    fb.innerHTML = html;
+    if(result==='correct') speak(target.word);
+  }
+  function hideAllFeedback(){
+    if(!game.zoneEls) return;
+    game.zoneEls.forEach(function(z){ if(z) z.feedback.classList.remove('show'); });
+  }
+
+  function applyRopePull(){
+    if(game.firstCorrectTeam !== null){
+      var dir = game.firstCorrectTeam===0 ? -1 : 1;
+      game.ropePosition = Math.max(-game.ropeWin, Math.min(game.ropeWin, game.ropePosition + dir));
+      game.pullsWon[game.firstCorrectTeam]++;
+      var teamName = game.teams[game.firstCorrectTeam].name;
+      var iconEl = document.querySelector('.flagIcon.' + (game.firstCorrectTeam===0 ? 'red' : 'blue'));
+      if(iconEl){
+        iconEl.classList.remove('tug');
+        void iconEl.offsetWidth;
+        iconEl.classList.add('tug');
+      }
+      showRoundBanner((game.firstCorrectTeam===0 ? '🔴 ' : '🔵 ') + teamName + ' pulls the rope!', function(){});
+      if(Math.abs(game.ropePosition) >= game.ropeWin){
+        game.decisiveWinner = game.ropePosition < 0 ? 0 : 1;
+      }
+    } else {
+      showRoundBanner('😐 No pull — nobody got it right!', function(){});
+    }
+    updateRopeKnot();
+  }
+
+  function checkRoundComplete(){
+    var allDone = game.teamState.every(function(ts){ return ts.answered; });
+    if(allDone){
+      clearTimeout(game.timerHandle);
+      clearTimeout(game.botTimeout);
+      applyRopePull();
+      $('nextBtn').hidden = false;
+      clearTimeout(game.autoNextTimeout);
+      game.autoNextTimeout = setTimeout(advanceRound, 2400);
+    }
+  }
+
+  function advanceRound(){
+    clearTimeout(game.autoNextTimeout);
+    $('nextBtn').hidden = true;
+    hideAllFeedback();
+    if(game.decisiveWinner !== null){ endGame(); return; }
+    game.round++;
+    if(game.round > game.totalRounds){ endGame(); return; }
+    nextRound();
+  }
+
+  /* ---------------- Self-Study mode (no timer, no opponent) ---------------- */
+  function startStudyMode(){
+    game.diff = DIFFS[game.diffKey];
+    game.roundQueue = shuffle(VOCAB.slice());
+    game.totalRounds = game.roundQueue.length;
+    game.round = 1;
+    game.studyMissed = {};
+    game.teams = [{name:'You', color:'#FF6B4A', visual:true}];
+    game.teamState = [{answered:false, result:null, badges:[]}];
+
+    $('startScreen').hidden = true;
+    $('endScreen').hidden = true;
+    $('app').hidden = false;
+    $('app').classList.add('study-mode');
+    stopMatchClock();
+    buildScenery();
+    buildZones();
+    setMascotState('neutral');
+    studyNextRound();
+  }
+
+  function studyNextRound(){
+    hideAllFeedback();
+    updateHUD();
+    game.studyRoundDone = false;
+    var wordData = game.roundQueue[game.round-1];
+    var distractors = getDistractors(wordData, game.diff.choices - 1);
+    var options = shuffle([{word:wordData.word, correct:true}].concat(
+      distractors.map(function(d){ return {word:d.word, correct:false}; })
+    ));
+    game.currentRoundData = {target:wordData};
+    $('promptText').innerHTML = wordData.def;
+    $('nextBtn').hidden = true;
+
+    showRoundBanner('Word '+game.round+' — Take your time!', function(){
+      speak(wordData.def);
+      spawnStudyBirds(0, options);
+    });
+  }
+
+  function studyHandleShoot(birdEl, correct, word, x, y){
+    if(game.studyRoundDone) return;
+    playSound('shoot');
+    shootEffect(x, y, correct);
+    setTimeout(function(){
+      if(correct){
+        game.studyRoundDone = true;
+        playSound('correct');
+        setMascotState('happy');
+        showZoneFeedback(0, 'correct');
+        fadeOutTeamBadges(0);
+        $('nextBtn').hidden = false;
+        clearTimeout(game.autoNextTimeout);
+        game.autoNextTimeout = setTimeout(studyAdvance, 1800);
+      } else {
+        playSound('wrong');
+        setMascotState('sad');
+        game.studyMissed[game.currentRoundData.target.word] = true;
+        showZoneFeedback(0, 'wrong');
+        birdEl.classList.add('fadeOut');
+        setTimeout(function(){ if(birdEl.isConnected) birdEl.remove(); }, 420);
+        setTimeout(function(){
+          if(!game.studyRoundDone){ setMascotState('neutral'); hideAllFeedback(); }
+        }, 1400);
+      }
+    }, 140);
+  }
+
+  function studyAdvance(){
+    clearTimeout(game.autoNextTimeout);
+    $('nextBtn').hidden = true;
+    hideAllFeedback();
+    setMascotState('neutral');
+    game.round++;
+    if(game.round > game.totalRounds){ studyEndSession(); return; }
+    studyNextRound();
+  }
+
+  function studyEndSession(){
+    clearTimeout(game.autoNextTimeout);
+    $('app').hidden = true;
+    $('app').classList.remove('study-mode');
+    var end = $('endScreen');
+    end.hidden = false;
+    var title = $('endTitle');
+    var missedWords = Object.keys(game.studyMissed);
+    title.textContent = missedWords.length===0
+      ? '🌸 Perfect! You know them all!'
+      : '🌟 Great practice! Review these next time:';
+
+    var board = $('endResultBoard');
+    board.innerHTML = '';
+    if(missedWords.length===0){
+      var card = document.createElement('div');
+      card.className = 'resultCard winner';
+      card.innerHTML = '<div class="rName">All '+VOCAB.length+' words</div><div class="rScore">✅ Mastered</div>';
+      board.appendChild(card);
+    } else {
+      missedWords.forEach(function(w){
+        var card = document.createElement('div');
+        card.className = 'resultCard';
+        card.innerHTML = '<div class="rName">'+w+'</div><div class="rScore">🔁 Review</div>';
+        board.appendChild(card);
+      });
+    }
+    playSound('win');
+    launchConfetti();
+  }
+
+  /* ---------------- Start / End ---------------- */
+  function startSelectedMode(){
+    if(game.teamMode===3){ startStudyMode(); }
+    else { startGame(); }
+  }
+  function startGame(){
+    game.diff = DIFFS[game.diffKey];
+    game.totalRounds = game.diff.rounds;
+    game.ropeWin = game.diff.ropeWin;
+    game.ropePosition = 0;
+    game.pullsWon = [0,0];
+    game.decisiveWinner = null;
+    game.roundQueue = buildRoundQueue(game.totalRounds);
+    game.round = 1;
+    game.teams = game.teamMode===2
+      ? [{name:'Team Red', color:'#FF6B4A', visual:true},{name:'Team Blue', color:'#4FC1E9', visual:true}]
+      : [{name:'You', color:'#FF6B4A', visual:true},{name:'Robo', color:'#4FC1E9', visual:false}];
+
+    $('startScreen').hidden = true;
+    $('endScreen').hidden = true;
+    $('app').hidden = false;
+    $('app').classList.remove('study-mode');
+    buildScenery();
+    buildRopeUI();
+    buildZones();
+    if(game.teamMode===2){ startMatchClock(); } else { stopMatchClock(); }
+    nextRound();
+  }
+
+  function endGame(){
+    clearTimeout(game.autoNextTimeout);
+    clearTimeout(game.timerHandle);
+    clearTimeout(game.botTimeout);
+    stopMatchClock();
+    $('app').hidden = true;
+    var end = $('endScreen');
+    end.hidden = false;
+    var board = $('endResultBoard');
+    board.innerHTML = '';
+
+    var title = $('endTitle');
+    var winnerIdx = null;
+    if(game.decisiveWinner !== null){
+      winnerIdx = game.decisiveWinner;
+    } else if(game.ropePosition !== 0){
+      winnerIdx = game.ropePosition < 0 ? 0 : 1;
+    }
+    if(winnerIdx === null){
+      title.textContent = "🤝 It's a tie — the rope stayed in the middle!";
+    } else {
+      var winnerName = game.teams[winnerIdx].name;
+      title.textContent = '🏆 ' + winnerName + ' Wins the Tug-of-War!';
+    }
+    playSound('win');
+
+    game.teams.forEach(function(team, idx){
+      var card = document.createElement('div');
+      card.className = 'resultCard';
+      if(idx === winnerIdx) card.className += ' winner';
+      card.innerHTML = '<div class="rName">'+team.name+(idx===winnerIdx?' 👑':'')+'</div><div class="rScore">'+game.pullsWon[idx]+' pulls</div>';
+      board.appendChild(card);
+    });
+
+    launchConfetti();
+  }
+
+  function launchConfetti(){
+    var colors = ['#FF6B4A','#4FC1E9','#FFC93C','#4CAF7D','#C9A6F0'];
+    for(var i=0;i<40;i++){
+      (function(){
+        var c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = (Math.random()*100)+'vw';
+        c.style.background = colors[Math.floor(Math.random()*colors.length)];
+        c.style.animation = 'none';
+        document.body.appendChild(c);
+        var duration = 1800+Math.random()*1600;
+        var drift = (Math.random()-0.5)*200;
+        var a = c.animate([
+          {transform:'translate(0,0) rotate(0deg)', opacity:1},
+          {transform:'translate('+drift+'px, 100vh) rotate('+(Math.random()*720-360)+'deg)', opacity:.9}
+        ], {duration:duration, easing:'ease-in', delay:Math.random()*400});
+        a.onfinish = function(){ if(c.isConnected) c.remove(); };
+      })();
+    }
+  }
+
+  function resetToStart(){
+    clearTimeout(game.autoNextTimeout);
+    clearTimeout(game.timerHandle);
+    clearTimeout(game.botTimeout);
+    stopMatchClock();
+    if(game.teamState){
+      game.teamState.forEach(function(ts){
+        ts.badges.forEach(function(b){ try{b.anim.cancel();}catch(e){} });
+      });
+    }
+    $('app').classList.remove('study-mode');
+    $('app').hidden = true;
+    $('endScreen').hidden = true;
+    $('startScreen').hidden = false;
+  }
+
+  /* ---------------- Event bindings ---------------- */
+  function initStartScreen(){
+    var diffCards = document.querySelectorAll('#diffRow .choiceCard');
+    diffCards.forEach(function(card){
+      card.addEventListener('click', function(){
+        diffCards.forEach(function(c){ c.classList.remove('selected'); });
+        card.classList.add('selected');
+        game.diffKey = card.getAttribute('data-diff');
+      });
+    });
+    var teamCards = document.querySelectorAll('#teamRow .choiceCard');
+    teamCards.forEach(function(card){
+      card.addEventListener('click', function(){
+        teamCards.forEach(function(c){ c.classList.remove('selected'); });
+        card.classList.add('selected');
+        game.teamMode = parseInt(card.getAttribute('data-team'), 10);
+        $('matchTimeSection').hidden = game.teamMode !== 2;
+      });
+    });
+    var matchCards = document.querySelectorAll('#matchTimeRow .choiceCard');
+    matchCards.forEach(function(card){
+      card.addEventListener('click', function(){
+        matchCards.forEach(function(c){ c.classList.remove('selected'); });
+        card.classList.add('selected');
+        game.matchMinutes = parseInt(card.getAttribute('data-minutes'), 10);
+      });
+    });
+    diffCards[0].classList.add('selected');
+    teamCards[0].classList.add('selected');
+    matchCards[1].classList.add('selected');
+
+    $('startBtn').addEventListener('click', function(){
+      ensureAudio();
+      startSelectedMode();
+    });
+  }
+
+  function initInGameControls(){
+    $('speakBtn').addEventListener('click', function(){
+      if(game.currentRoundData){
+        var wasOn = game.speechOn;
+        game.speechOn = true;
+        speak(game.currentRoundData.target.def);
+        game.speechOn = wasOn;
+      }
+    });
+    $('nextBtn').addEventListener('click', function(){
+      if(game.teamMode===3){ studyAdvance(); } else { advanceRound(); }
+    });
+    $('restartBtn').addEventListener('click', function(){
+      if(confirm('Restart the game? Your current scores will be cleared.')){
+        resetToStart();
+      }
+    });
+    $('sfxBtn').addEventListener('click', function(){
+      game.sfxOn = !game.sfxOn;
+      $('sfxBtn').textContent = game.sfxOn ? '🔊' : '🔇';
+      $('sfxBtn').classList.toggle('off', !game.sfxOn);
+      try{ localStorage.setItem('cf_sfx', game.sfxOn ? '1':'0'); }catch(e){}
+    });
+    $('speechBtn').addEventListener('click', function(){
+      game.speechOn = !game.speechOn;
+      $('speechBtn').textContent = game.speechOn ? '🗣️' : '🚫';
+      $('speechBtn').classList.toggle('off', !game.speechOn);
+      try{ localStorage.setItem('cf_speech', game.speechOn ? '1':'0'); }catch(e){}
+      if('speechSynthesis' in window) window.speechSynthesis.cancel();
+    });
+    $('sfxBtn').textContent = game.sfxOn ? '🔊' : '🔇';
+    $('sfxBtn').classList.toggle('off', !game.sfxOn);
+    $('speechBtn').textContent = game.speechOn ? '🗣️' : '🚫';
+    $('speechBtn').classList.toggle('off', !game.speechOn);
+  }
+
+  function initEndScreen(){
+    $('playAgainBtn').addEventListener('click', function(){
+      $('endScreen').hidden = true;
+      startSelectedMode();
+    });
+    $('backHomeBtn').addEventListener('click', function(){
+      $('endScreen').hidden = true;
+      $('startScreen').hidden = false;
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    initStartScreen();
+    initInGameControls();
+    initEndScreen();
+  });
+})();
+</script>
+</body>
+</html>
